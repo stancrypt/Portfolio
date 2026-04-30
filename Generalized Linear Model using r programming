@@ -1,0 +1,292 @@
+# Load libraries
+
+library(tidyr)
+library(purrr)
+library(broom)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(psych)
+library(car)
+library(corrplot)
+library(gmodels)
+library(gtsummary)
+library(performance)
+
+###########################################################
+#Data Filtering & Descriptive Analysis
+##########################################################
+my_data <- read.csv("survey_results_public.csv", header = TRUE)
+View(my_data)
+subset_data_1 <- my_data %>%
+  filter(MainBranch == "I am a developer by profession",
+         !is.na(WorkExp),
+         !is.na(ConvertedCompYearly))
+subset_data <- subset_data_1 %>%
+  select(
+    AIThreat,
+    WorkExp,
+    Employment,
+    EdLevel,
+    JobSat,
+    Age,
+    ConvertedCompYearly,
+    RemoteWork,
+    OrgSize,
+    Country,
+    YearsCode,
+    TechEndorse_1,
+    TechEndorse_2,
+    TechEndorse_3,
+    TechEndorse_4,
+    TechEndorse_5,
+    TechEndorse_6,
+    TechEndorse_7,
+    TechEndorse_8,
+    TechEndorse_9,
+    TechOppose_1,
+    TechOppose_2,
+    TechOppose_3,
+    TechOppose_5,
+    TechOppose_7,
+    TechOppose_9,
+    TechOppose_11,
+    TechOppose_13,
+    TechOppose_16,
+    TechOppose_15,
+    Industry,
+    JobSatPoints_1,
+    JobSatPoints_2,
+    JobSatPoints_3,
+    JobSatPoints_4,
+    JobSatPoints_5,
+    JobSatPoints_6,
+    JobSatPoints_7,
+    JobSatPoints_8,
+    JobSatPoints_9,
+    JobSatPoints_10,
+    JobSatPoints_11,
+    JobSatPoints_13,
+    JobSatPoints_14,
+    JobSatPoints_15,
+    JobSatPoints_16,
+    SO_Actions_1,
+    SO_Actions_3,
+    SO_Actions_4,
+    SO_Actions_5,
+    SO_Actions_6,
+    SO_Actions_9,
+    SO_Actions_7
+  )
+View(subset_data)
+colSums(is.na(data))
+subset_data$Age <- factor(subset_data$Age,
+                                   levels = c("18-24 years old",
+                                              "25-34 years old",
+                                              "35-44 years old",
+                                              "45-54 years old",
+                                              "55-64 years old",
+                                              "65 years or older",
+                                              "Prefer not to say"),
+                                   ordered = TRUE)
+subset_data$WorkExp <- as.numeric(subset_data$WorkExp)
+subset_data$EdLevel <- factor(subset_data$EdLevel,
+                                   levels = c("Associate degree (A.A., A.S., etc.)",
+                                              "Bachelor’s degree (B.A., B.S., B.Eng., etc.)",
+                                              "Master’s degree (M.A., M.S., M.Eng., MBA, etc.)",
+                                              "Primary/elementary school",
+                                              "Professional degree (JD, MD, Ph.D, Ed.D, etc.)",
+                                              "Secondary school (e.g. American high school, German Realschule or Gymnasium, etc.)",
+                                              "Some college/university study without earning a degree"),
+                                   ordered = TRUE)
+
+subset_data$ConvertedCompYearly <- as.numeric(subset_data$ConvertedCompYearly)
+subset_data$JobSat <- as.numeric((subset_data$JobSat))
+
+
+tbl_summary(
+  subset_data,
+  include = c(Age, WorkExp, EdLevel, ConvertedCompYearly, JobSat))
+
+#######################################################
+#Descriptive analysis
+######################################################
+# Helper for n (%)
+fmt_n_pct <- function(n, total = n_total) {
+  paste0(n, " (", round(100 * n / total, 1), "%)")
+}
+
+t_EdLevel <- subset_data %>%
+  mutate(
+    EdLevel_clean = case_when(
+      str_detect(EdLevel, "Associate degree") ~ "Associate degree (A.A., A.S., etc.)",
+      str_detect(EdLevel, "Bachelor’s degree") ~ "Bachelor’s degree (B.A., B.S., B.Eng., etc.)",
+      str_detect(EdLevel, "Master’s degree") ~ "Master’s degree (M.A., M.S., M.Eng., MBA, etc.)",
+      str_detect(EdLevel, "Primary/elementary school") ~ "Primary/elementary school",
+      str_detect(EdLevel, "Professional degree") ~ "Professional degree (JD, MD, Ph.D, Ed.D, etc.)",
+      str_detect(EdLevel, "Secondary school") ~ "Secondary school (e.g. American high school, German Realschule or Gymnasium, etc.)",
+      str_detect(EdLevel, "college/university") ~ "Some college/university study without earning a degree",
+      ordered = TRUE)
+    TRUE ~ EdLevel
+    )%>%
+  count(ethnicity_clean) %>%
+  transmute(
+    Variable = "EdLevel*",
+    Category = EdLevel_clean,
+    `n (%)` = fmt_n_pct(n)
+  )
+
+
+n_total <- nrow(subset_data)
+ConvertedCompYearly_mean <- mean(subset_data$ConvertedCompYearly, na.rm = TRUE)
+ConvertedCompYearly_sd   <- sd(subset_data$ConvertedCompYearly, na.rm = TRUE)
+ConvertedCompYearly_min  <- min(subset_data$ConvertedCompYearly, na.rm = TRUE)
+ConvertedCompYearly_max  <- max(subset_data$ConvertedCompYearly, na.rm = TRUE)
+
+jobstat_n_total <- nrow(subset_data)
+jobstat_mean <- mean(subset_data$JobSat, na.rm = TRUE)
+jobstat_sd   <- sd(subset_data$JobSat, na.rm = TRUE)
+jobstat_min  <- min(subset_data$JobSat, na.rm = TRUE)
+jobstat_max  <- max(subset_data$JobSat, na.rm = TRUE)
+
+fmt_n_pct <- function(n, total) {
+  sprintf("%d (%.1f%%)", n, (n / total) * 100)
+}
+# Build Table 1 blocks
+ConvertedCompYearly_block <- bind_rows(
+  tibble(Variable = "ConvertedCompYearly (years)", Category = "Mean (SD)",
+         `n (%)` = sprintf("%.1f (%.1f)", ConvertedCompYearly_mean, ConvertedCompYearly_sd)),
+  
+  tibble(Variable = "ConvertedCompYearly (years)", Category = "Range",
+         `n (%)` = paste0(ConvertedCompYearly_min, "–", ConvertedCompYearly_max)),
+  
+  tibble(Variable = "jobstat", Category = "Mean (SD)",
+         `n (%)` = sprintf("%.1f (%.1f)", jobstat_mean, jobstat_sd)),
+  
+  tibble(Variable = "jobstat", Category = "Range",
+         `n (%)` = paste0(jobstat_min, "–", jobstat_max))
+)
+
+View(ConvertedCompYearly_block)
+########################################
+# Missing Values
+#######################################
+missing_data <- subset_data[, c("EdLevel", "ConvertedCompYearly", "JobSat")]
+
+na_per_column <- colSums(is.na(missing_data))
+View(print(na_per_column))
+
+
+##################################################################
+#DV: Salary (ConvertedCompYearly)
+#IV: Experience (WorkExp)
+
+########################################################################
+clean_data <- na.omit(subset_data)
+
+########################################
+#Hypothesis Testing (T-Test)
+########################################
+# Ensure AI_threat is a factor
+unique(subset_data$AIThreat)
+
+subset_data$AIThreat_binary <- ifelse(subset_data$AIThreat == "Yes", 1, 0)
+subset_data$AIThreat_binary <- as.factor(subset_data$AIThreat_binary)
+
+# Run t-test
+test_1 <- t.test(ConvertedCompYearly ~ AIThreat_binary, data = subset_data)
+View(test_1)
+t_estimate<- test_1$estimate   # correlation coefficient
+t_p_value<- test_1$p.value    # p-value
+t_method<- test_1$method
+
+t_statements_block <- bind_rows(
+  tibble(Result = "estimate", Value = as.character(t_estimate)),
+  tibble(Result = "p.value", Value = as.character(t_p_value)),
+  tibble(Result = "method", Value = t_method)
+)
+View(t_statements_block)
+
+
+############################################################
+#Correlation
+######################################################
+
+correlation_data <- na.omit(subset_data)
+View(correlation_data)
+correlation_data$ConvertedCompYearly  <- as.numeric(as.character(correlation_data$ConvertedCompYearly ))
+correlation_data$JobSat <- as.numeric(as.character(correlation_data$JobSat))
+
+# paired t-test
+table_1 <- table(
+  correlation_data$ConvertedCompYearly,
+  correlation_data$JobSat
+)
+
+test <- cor.test(correlation_data$ConvertedCompYearly,
+                 correlation_data$JobSat,
+                 method = "spearman",
+                 use = "complete.obs")
+
+change_estimate<- test$estimate   # correlation coefficient
+change_p_value<- test$p.value    # p-value
+change_method<- test$method
+
+correlation_statements_block <- bind_rows(
+  tibble(Result = "estimate", Value = as.character(change_estimate)),
+  tibble(Result = "p.value", Value = as.character(change_p_value)),
+  tibble(Result = "method", Value = change_method)
+)
+View(correlation_statements_block)
+
+################################################################
+# Question 4: Linear Modeling and Model comparison
+################################################################
+
+model1 <- lm(ConvertedCompYearly ~ WorkExp, data = correlation_data)
+print(summary(model1))
+
+
+###############################################################################
+## Model 2: Multiple Linear Regression (At Least 3 Predictors)
+#######################################################################################
+model2 <- lm(ConvertedCompYearly ~ WorkExp + EdLevel + JobSat + Age, data = correlation_data)
+summary(model2)
+
+#############################################################################
+# Visualization (ggplot2)
+# Scatter Plot with Regression Line
+View(correlation_data)
+library(ggplot2)
+
+ggplot(correlation_data, aes(x = WorkExp, y = ConvertedCompYearly)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Relationship Between Work Experience and Annual Salary",
+    x = "Years of Experience",
+    y = "Annual Salary"
+  ) +
+  theme_minimal()
+
+View()
+
+###############################################################################
+#Generalized Linear Model (Logistic Regression)
+#############################################################################
+correlation_data$AIThreat <- ifelse(correlation_data$AIThreat == "Yes", 1, 0)
+
+View(correlation_data)
+glm_model <- glm(AIThreat ~ WorkExp + EdLevel + JobSat,
+                 data = correlation_data,
+                 family = binomial)
+
+summary(glm_model)
+#Odds Ratio (Convert coefficients to odds ratios)
+  
+exp(coef(glm_model))
+
+############################################################
+#Performance Comparison of Models
+library(performance)
+View(compare_performance(model1, model2, glm_model))
