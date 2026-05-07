@@ -1,0 +1,36 @@
+----[Developer Salary, Job Satisfaction & AI Threat Perception Analysis]--------
+This project involved conducting an end-to-end statistical analysis of global developer survey data using R to explore 
+the relationship between work experience, salary, job satisfaction, education level, and perceptions of AI as a threat to developers.
+Using data cleaning, exploratory data analysis, hypothesis testing, correlation analysis, regression modeling, and data visualization techniques, 
+the project identified key factors influencing annual compensation and workplace satisfaction among professional developers.
+---[Key Activities Performed]-------
+	Cleaned and transformed raw survey data using dplyr, tidyr, and readxl
+	Filtered and analyzed responses from professional developers only
+	Conducted descriptive statistical analysis on:
+Work experience
+Annual compensation
+Job satisfaction
+Education level
+	Performed missing value analysis and data preprocessing
+	Executed hypothesis testing using t-tests to examine differences in salary based on AI threat perception
+	Conducted Spearman correlation analysis to evaluate relationships between salary and job satisfaction
+	Built:
+Simple Linear Regression Model to predict salary from work experience
+Multiple Linear Regression Model using work experience, education level, age, and job satisfaction
+Logistic Regression Model to analyze factors influencing perceptions of AI threat
+Visualized relationships between experience and salary using ggplot2
+Compared model performance using the performance package
+📈 ---[Key Insights]-------
+	Work experience showed a positive relationship with annual salary
+	Education level and job satisfaction contributed to salary variation
+	Developers’ perceptions of AI as a threat were influenced by professional and demographic factors
+	Statistical modeling provided insights into compensation trends within the tech industry
+🛠️ ---[Tools & Technologies]----
+R
+dplyr
+ggplot2
+tidyr
+broom
+gtsummary
+performance
+Statistical Modeling & Hypothesis Testing
